@@ -1,10 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './index.css';
 import QuestionHeader from './header';
 import QuestionView from './question';
 import { getQuestionsByFilter } from '../../../services/questionService';
 import { Answer, OrderType, Question } from '../../../types';
-import UserContext from '../../../contexts/UserContext';
+import useUserContext from '../../../hooks/useUserContext';
 
 /**
  * Interface representing the props for the QuestionPage component.
@@ -49,8 +49,7 @@ const QuestionPage = ({
   handleAnswer,
   handleNewQuestion,
 }: QuestionPageProps) => {
-  // TODO: Task 1 - Refactor the QuestionPage component to use the useUserContext hook
-  const context = useContext(UserContext);
+  const context = useUserContext();
   if (context === null) {
     throw new Error('User context is null.');
   }

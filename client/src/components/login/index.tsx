@@ -1,6 +1,6 @@
-import React, { ChangeEvent, useContext, useState } from 'react';
+import React, { ChangeEvent, useState } from 'react';
 import './index.css';
-import LoginContext from '../../contexts/LoginContext';
+import useLoginContext from '../../hooks/useLoginContext';
 
 /**
  * Login Component contains a form that allows the user to input their username, which is then submitted
@@ -9,8 +9,7 @@ import LoginContext from '../../contexts/LoginContext';
 const Login = () => {
   const [username, setUsername] = useState<string>('');
 
-  // TODO: Task 1 - Refactor the Login component to use the useLoginContext hook
-  const context = useContext(LoginContext);
+  const context = useLoginContext();
   if (context === null) {
     throw new Error('User context is null.');
   }
