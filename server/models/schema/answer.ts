@@ -20,7 +20,7 @@ const answerSchema: Schema = new Schema(
     ansDateTime: {
       type: Date,
     },
-    // TODO: Task 2 - Add field
+    comments: [{ type: Schema.Types.ObjectId, ref: 'Comment' }],
   },
   { collection: 'Answer' },
 );

@@ -19,7 +19,7 @@ export interface Answer {
   text: string;
   ansBy: string;
   ansDateTime: Date;
-  // TODO: Task 2 - Add field
+  comments: Comment[];
 }
 
 /**
@@ -75,7 +75,7 @@ export interface Question {
   views: number;
   upVotes: string[];
   downVotes: string[];
-  // TODO: Task 2 - Add field
+  comments: Comment[];
 }
 
 /**
@@ -137,8 +137,14 @@ export interface VoteRequest extends Request {
  *
  */
 export interface Comment {
-  // TODO: Task 2 - Create the `Comment` interface
+  _id?: ObjectId;
+  text: string;
+  commentBy: string;
+  commentDateTime: Date;
 }
+
+// TODO: jsdoc
+type CommentType = 'question' | 'answer';
 
 /**
  * Interface extending the request body when adding a comment to a question or an answer, which contains:
@@ -148,12 +154,13 @@ export interface Comment {
  */
 export interface AddCommentRequest extends Request {
   body: {
-    // TODO: Task 2 - Add fields
+    id: string;
+    type: CommentType;
+    comment: Comment;
   };
 }
 
 /**
  * Type representing the possible responses for a Comment-related operation.
  */
-// TODO: Task 2 - Create the `CommentResponse` type
-export type CommentResponse = null;
+export type CommentResponse = Comment | { error: string };

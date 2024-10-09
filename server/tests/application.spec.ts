@@ -19,6 +19,7 @@ import {
 import { Answer, Question, Tag, Comment } from '../types';
 import { T1_DESC, T2_DESC, T3_DESC } from '../data/posts_strings';
 import AnswerModel from '../models/answers';
+import CommentModel from '../models/comments';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const mockingoose = require('mockingoose');
@@ -803,14 +804,49 @@ describe('application module', () => {
         expect(result.comments).toContain(com1._id);
       });
 
+      test('addComment should return the updated answer when given `answer`', async () => {
+        const answer = structuredClone(ans1);
+        answer.comments.push(com1);
+        mockingoose(AnswerModel).toReturn(answer, 'findOneAndUpdate');
+
+        const result = (await addComment(ans1._id?.toString() as string, 'answer', com1)) as Answer;
+
+        expect(result.comments.length).toEqual(1);
+        expect(result.comments).toContain(com1._id);
+      });
+
+      test('addComment should return an object with error if given comment has invalid fields', async () => {
+        const result = await addComment(
+          QUESTIONS[0]._id?.toString() as string,
+          'question',
+          {} as Comment,
+        );
+        expect(result).toEqual({ error: 'Error when adding comment' });
+      });
+
+      test('addComment should return an object with error if given comment is undefined', async () => {
+        const result = await addComment(
+          QUESTIONS[0]._id?.toString() as string,
+          'question',
+          undefined as unknown as Comment, // the things we do to run tests :thinking:
+        );
+        expect(result).toEqual({ error: 'Error when adding comment' });
+      });
+
+      test('addComment should return an object with error if saving a model returns null', async () => {
+        const question = QUESTIONS[0];
+        mockingoose(QuestionModel).toReturn(null, 'findOneAndUpdate');
+
+        const result = await addComment(question._id?.toString() as string, 'question', com1);
+        expect(result).toEqual({ error: 'Error when adding comment' });
+      });
+
       test('addComment should return an object with error if findOneAndUpdate throws an error', async () => {
         const question = QUESTIONS[0];
         mockingoose(QuestionModel).toReturn(new Error('error'), 'findOneAndUpdate');
         const result = await addComment(question._id?.toString() as string, 'question', com1);
         expect(result).toEqual({ error: 'Error when adding comment' });
       });
-
-      // TODO: Task 2 - Add more tests for the addComment function
     });
   });
 });

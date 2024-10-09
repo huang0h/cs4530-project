@@ -79,6 +79,54 @@ describe('POST /addComment', () => {
     expect(response.text).toBe('Invalid request');
   });
 
+  it('should return bad request error if comment is missing properties', async () => {
+    const validQid = new mongoose.Types.ObjectId();
+    const mockReqBody = {
+      id: validQid.toString(),
+      type: 'question',
+      comment: {
+        text: 'This is a test comment',
+        commentBy: 'dummyUserId',
+        // missing commentDateTime
+      },
+    };
+
+    const response = await supertest(app).post('/comment/addComment').send(mockReqBody);
+
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('Invalid comment');
+  });
+
+  it('should return server error if adding comment fails', async () => {
+    const validQid = new mongoose.Types.ObjectId();
+    const validCid = new mongoose.Types.ObjectId();
+    const mockReqBody = {
+      id: validQid.toString(),
+      type: 'question',
+      comment: {
+        text: 'This is a test comment',
+        commentBy: 'dummyUserId',
+        commentDateTime: new Date('2024-06-03'),
+      },
+    };
+
+    const mockComment = {
+      _id: validCid,
+      text: 'This is a test comment',
+      commentBy: 'dummyUserId',
+      commentDateTime: new Date('2024-06-03'),
+    };
+
+    saveCommentSpy.mockResolvedValueOnce(mockComment);
+
+    addCommentSpy.mockResolvedValueOnce({ error: 'dummy error' });
+
+    const response = await supertest(app).post('/comment/addComment').send(mockReqBody);
+
+    expect(response.status).toBe(500);
+    expect(response.text).toBe('Error when adding comment: dummy error');
+  });
+
   it('should return database error in response if saveComment method throws an error', async () => {
     const validQid = new mongoose.Types.ObjectId().toString();
     const mockReqBody = {
@@ -98,6 +146,4 @@ describe('POST /addComment', () => {
     expect(response.status).toBe(500);
     expect(response.text).toBe('Error when adding comment: Error when saving a comment');
   });
-
-  // TODO: Task 2 - Add more tests for the /addComment route
 });

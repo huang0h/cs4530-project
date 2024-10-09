@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { QueryOptions } from 'mongoose';
+import { Model, QueryOptions } from 'mongoose';
 import {
   Answer,
   AnswerResponse,
@@ -13,8 +13,7 @@ import {
 import AnswerModel from './answers';
 import QuestionModel from './questions';
 import TagModel from './tags';
-// TODO: Task 2 - Uncomment after implementing the CommentModel
-// import CommentModel from './comments';
+import CommentModel from './comments';
 
 /**
  * Parses tags from a search string.
@@ -278,7 +277,6 @@ export const populateDocument = async (
   id: string | undefined,
   type: 'question' | 'answer',
 ): Promise<QuestionResponse | AnswerResponse | null> => {
-  // TODO: Task 2 - Modify the populateDocument function to also populate comments
   try {
     if (!id) {
       throw new Error('Provided question ID is undefined.');
@@ -296,9 +294,15 @@ export const populateDocument = async (
           path: 'answers',
           model: AnswerModel,
         },
+        {
+          path: 'comments',
+          model: CommentModel,
+        },
       ]);
     } else if (type === 'answer') {
-      result = await AnswerModel.findOne({ _id: id });
+      result = await AnswerModel.findOne({ _id: id }).populate([
+        { path: 'comments', model: CommentModel },
+      ]);
     }
 
     return result;
@@ -318,7 +322,6 @@ export const populateDocument = async (
 export const fetchAndIncrementQuestionViewsById = async (
   qid: string,
 ): Promise<QuestionResponse | null> => {
-  // TODO: Task 2 - Modify the fetchAndIncrementQuestionViewsById function to also populate comments
   try {
     const q = await QuestionModel.findOneAndUpdate(
       { _id: new ObjectId(qid) },
@@ -332,6 +335,10 @@ export const fetchAndIncrementQuestionViewsById = async (
       {
         path: 'answers',
         model: AnswerModel,
+      },
+      {
+        path: 'comments',
+        model: CommentModel,
       },
     ]);
     return q;
@@ -380,8 +387,12 @@ export const saveAnswer = async (answer: Answer): Promise<AnswerResponse> => {
  * @returns {Promise<CommentResponse>} - The saved comment, or an error message if the save failed
  */
 export const saveComment = async (comment: Comment): Promise<CommentResponse> => {
-  // TODO: Task 2 - Implement the saveComment function
-  throw new Error('Function not implemented.');
+  try {
+    const result = await CommentModel.create(comment);
+    return result;
+  } catch (error) {
+    return { error: 'Error when saving a comment' };
+  }
 };
 
 /**
@@ -562,9 +573,31 @@ export const addComment = async (
   id: string,
   type: 'question' | 'answer',
   comment: Comment,
-): Promise<QuestionResponse | AnswerResponse> =>
-  // TODO: Task 2 - Implement the addComment function
-  ({ error: 'Error when adding comment' });
+): Promise<QuestionResponse | AnswerResponse> => {
+  try {
+    if (!comment || !comment.text || !comment.commentBy || !comment.commentDateTime) {
+      throw new Error('Invalid comment');
+    }
+
+    const updateQuery = { $push: { comments: { $each: [comment._id], $position: 0 } } };
+
+    let result;
+
+    if (type === 'question') {
+      result = await QuestionModel.findOneAndUpdate({ _id: id }, updateQuery, { new: true });
+    } else {
+      result = await AnswerModel.findOneAndUpdate({ _id: id }, updateQuery, { new: true });
+    }
+
+    if (result === null) {
+      throw new Error(`Error when adding comment`);
+    }
+
+    return result;
+  } catch (error) {
+    return { error: `Error when adding comment` };
+  }
+};
 
 /**
  * Gets a map of tags and their corresponding question counts.
