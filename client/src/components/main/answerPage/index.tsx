@@ -119,6 +119,8 @@ const AnswerPage = ({ qid, handleNewQuestion, handleNewAnswer }: AnswerPageProps
           text={a.text}
           ansBy={a.ansBy}
           meta={getMetaData(new Date(a.ansDateTime))}
+          comments={question.comments}
+          handleNewComment={(comment: Comment) => handleNewComment(comment, 'answer', a._id)}
         />
       ))}
       <button

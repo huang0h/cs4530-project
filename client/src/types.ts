@@ -30,7 +30,9 @@ export type OrderType = keyof typeof orderTypeDisplayName;
  * commentDateTime - Time at which the comment was created.
  */
 export interface Comment {
-  // TODO: Task 2 - Define the Comment interface
+  text: string;
+  commentBy: string;
+  commentDateTime: Date;
 }
 
 /**
@@ -81,7 +83,7 @@ export interface Answer {
   text: string;
   ansBy: string;
   ansDateTime: Date;
-  // TODO: Task 2 - Add the comments field to the Answer interface
+  comments: Comment[];
 }
 
 /**
@@ -110,5 +112,5 @@ export interface Question {
   askDateTime: Date;
   upVotes: string[];
   downVotes: string[];
-  // TODO: Task 2 - Add the comments field to the Question interface
+  comments: Comment[];
 }

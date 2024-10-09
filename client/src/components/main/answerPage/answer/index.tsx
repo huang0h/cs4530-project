@@ -15,7 +15,8 @@ interface AnswerProps {
   text: string;
   ansBy: string;
   meta: string;
-  // TODO: Task 2 - Add field(s) to the AnswerProps interface
+  comments: Comment[];
+  handleNewComment: (comment: Comment) => void;
 }
 
 /**
@@ -25,9 +26,10 @@ interface AnswerProps {
  * @param text The content of the answer.
  * @param ansBy The username of the answer's author.
  * @param meta Additional metadata related to the answer.
+ * @param comments The comments left on the answer
+ * @param handleNewComment A function to run that adds a new comment
  */
-const AnswerView = ({ text, ansBy, meta }: AnswerProps) => (
-  // TODO: Task 2 - Add the CommentSection component to the AnswerView
+const AnswerView = ({ text, ansBy, meta, comments, handleNewComment }: AnswerProps) => (
   <div className='answer right_padding'>
     <div id='answerText' className='answerText'>
       {handleHyperlink(text)}
@@ -36,6 +38,7 @@ const AnswerView = ({ text, ansBy, meta }: AnswerProps) => (
       <div className='answer_author'>{ansBy}</div>
       <div className='answer_question_meta'>{meta}</div>
     </div>
+    <CommentSection comments={comments} handleAddComment={handleNewComment} />
   </div>
 );
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getMetaData } from '../../../tool';
 import { Comment } from '../../../types';
 import './index.css';
+import useUserContext from '../../../hooks/useUserContext';
 
 /**
  * Interface representing the props for the Comment Section component.
@@ -20,7 +21,27 @@ interface CommentSectionProps {
  * @param comments: an array of Comment objects
  * @param handleAddComment: function to handle the addition of a new comment
  */
-const CommentSection = ({ comments, handleAddComment }: CommentSectionProps) => (
+const CommentSection = ({ comments, handleAddComment }: CommentSectionProps) => {
+  const user = useUserContext();
+
+  if (user === null) {
+    throw new Error('User context is null.');
+  }
+
+  const { username } = user.user;
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [showAddCommentError, setShowCommentError] = useState(false);
+
+  function addComment() {
+    if (commentText.length === 0) {
+      setShowCommentError(true);
+      return;
+    }
+
+    handleAddComment({ text: commentText, commentBy: username, commentDateTime: new Date() });
+    setCommentText('');
+  }
   // TODO: Task 2 - Implement the CommentSection component
 
   // Add the necessary state variables and functions to handle the comment input and display
@@ -48,6 +69,44 @@ const CommentSection = ({ comments, handleAddComment }: CommentSectionProps) => 
    *  - If the comment text is empty, display an error message saying "Comment cannot be empty."
    *  - When a comment is added, clear the text area.
    */
-  <div className='comment-section'></div>
-);
+  return (
+    <div className='comment-section'>
+      <button onClick={() => setShowComments(!showComments)} className='toggle-button'>
+        {showComments ? 'Hide Comments' : 'Show Comments'}
+      </button>
+      {showComments && (
+        <div className='comments-container'>
+          {comments.length === 0 ? (
+            <div className='no-comments'>No comments yet</div>
+          ) : (
+            <ul className='comments-list'>
+              {comments.map(comment => (
+                <li key={`${comment.commentDateTime}-${comment.commentBy}`}>
+                  <p className='comment-text'>{comment.text}</p>
+                  <p className='comment-username'>{comment.commentBy}</p>
+                  <p className='comment-meta'>{getMetaData(comment.commentDateTime)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      <div className='add-comment'>
+        <textarea
+          className='comment-textarea'
+          placeholder='Add a comment'
+          value={commentText}
+          onChange={event => {
+            setCommentText(event.target.value);
+            setShowCommentError(false);
+          }}
+        />
+        <button className='add-comment-button' onClick={addComment}>
+          Add Button
+        </button>
+        {showAddCommentError && <p className='error'>Comment cannot be empty</p>}
+      </div>
+    </div>
+  );
+};
 export default CommentSection;
