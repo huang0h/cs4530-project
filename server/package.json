@@ -1,6 +1,8 @@
 {
   "dependencies": {
+    "@libsql/client": "^0.14.0",
     "cors": "^2.8.5",
+    "drizzle-orm": "^0.34.1",
     "express": "^4.19.2",
     "mongodb": "^6.8.0",
     "mongoose": "^8.5.1",
@@ -16,6 +18,8 @@
     "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.25.0",
     "eslint": "^8.57.0",
     "eslint-config-airbnb-typescript": "^18.0.0",
     "eslint-config-prettier": "^9.1.0",
@@ -29,15 +33,14 @@
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3",
-    "dotenv": "^16.4.5"
+    "typescript": "^5.5.3"
   },
   "scripts": {
     "start": "ts-node server.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "jest -w=1 --coverage --detectOpenHandles",
-    "build" : "tsc",
-    "start:prod" : "node ./dist/server.js"
+    "build": "tsc",
+    "start:prod": "node ./dist/server.js"
   }
 }

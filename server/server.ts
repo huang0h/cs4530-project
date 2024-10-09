@@ -13,6 +13,7 @@ import answerController from './controller/answer';
 import questionController from './controller/question';
 import tagController from './controller/tag';
 import commentController from './controller/comment';
+import { drizzle } from 'drizzle-orm/connect';
 
 dotenv.config();
 
