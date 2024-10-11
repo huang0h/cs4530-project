@@ -41,6 +41,8 @@
     "lint:fix": "eslint . --fix",
     "test": "jest -w=1 --coverage --detectOpenHandles",
     "build": "tsc",
-    "start:prod": "node ./dist/server.js"
+    "start:prod": "node ./dist/server.js",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   }
 }
