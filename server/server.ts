@@ -14,6 +14,7 @@ import questionController from './controller/question';
 import tagController from './controller/tag';
 import commentController from './controller/comment';
 import { drizzle } from 'drizzle-orm/connect';
+import db from './models/db/db';
 
 dotenv.config();
 
@@ -62,7 +63,8 @@ app.use(
 
 app.use(express.json());
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', async (req: Request, res: Response) => {
+  await db.$client.execute('select 1');
   res.send('hello world');
   res.end();
 });
