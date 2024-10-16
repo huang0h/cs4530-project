@@ -49,7 +49,6 @@ const tagController = (socket: Server) => {
     try {
       const { name } = req.params; // Get the tag name from the request parameters
       const tag = await db.query.tags.findFirst({ where: eq(tags.name, name) });
-      // const tag = await TagModel.findOne({ name }); // Use the model's method to find the tag
 
       if (!tag) {
         res.status(404).send(`Tag with name "${name}" not found`);
