@@ -1,7 +1,9 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/connect';
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 
-const db = await drizzle('libsql', { connection: process.env.DATABASE_URL, casing: 'snake_case' });
+const client = createClient({ url: process.env.DB_FILE_NAME! });
+const db = drizzle(client);
 
 export default db;

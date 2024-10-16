@@ -1,8 +1,8 @@
 import db from './db';
-import { users, questions } from './schema';
+import { users, questions, tags, answers } from './schema';
 
 (async () => {
-  const [avery] = await db
+  const [avery] = await (await db)
     .insert(users)
     .values({ username: 'avery', password: 'password' })
     .returning();
@@ -46,12 +46,15 @@ import { users, questions } from './schema';
     })
     .returning();
 
-  const [walterQ1] = await db.insert(questions).values({
-    title: 'How do I create blue diamonds?',
-    text: 'I am unsure how to proceed',
-    askerId: walter.id,
-    viewCount: 0,
-  });
+  const [walterQ1] = await db
+    .insert(questions)
+    .values({
+      title: 'How do I create blue diamonds?',
+      text: 'I am unsure how to proceed',
+      askerId: walter.id,
+      viewCount: 0,
+    })
+    .returning();
   // TODO tags for walterQ1
 
   const [averyQ2] = await db
