@@ -22,7 +22,7 @@ const dateFields = {
 };
 
 export const users = sqliteTable('users', {
-  id: t.int('id').primaryKey({ autoIncrement: true }),
+  id: t.int().primaryKey({ autoIncrement: true }),
   username: t.text('username').notNull(),
   password: t.text('password').notNull(),
   ...dateFields,
@@ -48,7 +48,7 @@ export const answers = sqliteTable('answers', {
 const commentFields = {
   id: t.int('id').primaryKey({ autoIncrement: true }),
   text: t.text().notNull(),
-  commentedBy: t.int().references(() => users.id),
+  commenterId: t.int().references(() => users.id),
   ...dateFields,
 };
 
@@ -89,12 +89,14 @@ export const tags = sqliteTable('tags', {
 export const questionTags = sqliteTable(
   'questionTags',
   {
-    questionId: t.int().references(() => questions.id),
-    tagId: t.int().references(() => tags.id),
+    questionId: t.integer().references(() => questions.id),
+    tagId: t.integer().references(() => tags.id),
+    // questionId: t.int().references(() => questions.id),
+    // tagId: t.int().references(() => tags.id),
   },
-  // table => ({
-  //   pk: t.primaryKey({ columns: [table.questionId, table.tagId] }),
-  // }),
+  table => ({
+    pk: t.primaryKey({ columns: [table.questionId, table.tagId] }),
+  }),
 );
 
 export const votes = sqliteTable(
@@ -122,49 +124,44 @@ export const usersRelations = relations(users, ({ many }) => ({
   answers: many(answers),
   questionComments: many(questionComments),
   answerComments: many(answerComments),
-  votes: many(votes),
-  questionVersions: many(questionVersions),
-  answerVersions: many(answerVersions),
+  // votes: many(votes),
+  // questionVersions: many(questionVersions),
+  // answerVersions: many(answerVersions),
 }));
 
 export const questionsRelations = relations(questions, ({ one, many }) => ({
   askedByUser: one(users, {
     fields: [questions.askerId],
     references: [users.id],
-    relationName: 'question_to_user',
   }),
-  votes: many(votes),
+  // votes: many(votes),
   answers: many(answers),
   questionComments: many(questionComments),
-  tags: many(questionTags),
-  version: many(questionVersions),
+  // tags: many(questionTags),
+  // versions: many(questionVersions),
 }));
 
 export const answerRelations = relations(answers, ({ one, many }) => ({
   answererId: one(users, {
     fields: [answers.answererId],
     references: [users.id],
-    relationName: 'answer_to_user',
   }),
   questionId: one(questions, {
     fields: [answers.questionId],
     references: [questions.id],
-    relationName: 'answer_to_question',
   }),
   comments: many(answerComments),
-  versions: many(answerVersions),
+  // versions: many(answerVersions),
 }));
 
 export const questionsCommentsRelations = relations(questionComments, ({ one }) => ({
   question: one(questions, {
     fields: [questionComments.questionId],
     references: [questions.id],
-    relationName: 'questionComment_to_question',
   }),
-  asker: one(users, {
-    fields: [questionComments.commentedBy],
+  commenterId: one(users, {
+    fields: [questionComments.commenterId],
     references: [users.id],
-    relationName: 'questionComment_to_user',
   }),
 }));
 
@@ -172,54 +169,57 @@ export const answersCommentsRelations = relations(answerComments, ({ one }) => (
   answers: one(answers, {
     fields: [answerComments.questionId],
     references: [answers.id],
-    relationName: 'answerComment_to_answer',
   }),
-  asker: one(users, {
-    fields: [answerComments.commentedBy],
+  commenterId: one(users, {
+    fields: [answerComments.commenterId],
     references: [users.id],
-    relationName: 'answerComment_to_user',
   }),
 }));
 
-export const questionVersionsRelations = relations(questionVersions, ({ one }) => ({
-  question: one(questions, {
-    fields: [questionVersions.questionId],
-    references: questions.id,
-    relationName: 'questionVersion_to_question',
-  }),
-  editor: one(users, {
-    fields: [questionVersions.editorId],
-    references: users.id,
-    relationName: 'questionVersion_to_user',
-  }),
-}));
+// export const questionVersionsRelations = relations(questionVersions, ({ one }) => ({
+//   question: one(questions, {
+//     fields: [questionVersions.questionId],
+//     references: questions.id,
+//   }),
+//   editor: one(users, {
+//     fields: [questionVersions.editorId],
+//     references: users.id,
+//   }),
+// }));
 
-export const answerVersionsRelations = relations(answerVersions, ({ one }) => ({
-  answer: one(answers, {
-    fields: [answerVersions.answerId],
-    references: answers.id,
-    relationName: 'answerVersion_to_answer',
-  }),
-  editor: one(users, {
-    fields: [answerVersions.editorId],
-    references: users.id,
-    relationName: 'answerVersion_to_user',
-  }),
-}));
+// export const answerVersionsRelations = relations(answerVersions, ({ one }) => ({
+//   answer: one(answers, {
+//     fields: [answerVersions.answerId],
+//     references: answers.id,
+//   }),
+//   editor: one(users, {
+//     fields: [answerVersions.editorId],
+//     references: users.id,
+//   }),
+// }));
 
-export const tagsRelations = relations(tags, ({ many }) => ({
-  questionTags: many(questionTags),
-}));
+// export const tagsRelations = relations(tags, ({ many }) => ({
+//   questionTags: many(questionTags),
+// }));
 
-export const questionTagsRelations = relations(questionTags, ({ one }) => ({
-  question: one(questions, {
-    fields: [questionTags.questionId],
-    references: questions.id,
-    relationName: 'questionTag_to_question',
-  }),
-  tag: one(tags, {
-    fields: [questionTags.tagId],
-    references: tags.id,
-    relationName: 'questionTag_to_tag',
-  }),
-}));
+// export const questionTagsRelations = relations(questionTags, ({ one }) => ({
+//   question: one(questions, {
+//     fields: [questionTags.questionId],
+//     references: questions.id,
+//   }),
+//   tag: one(tags, {
+//     fields: [questionTags.tagId],
+//     references: tags.id,
+//   }),
+// }));
+
+// export const votesRelations = relations(votes, ({ one }) => ({
+//   voterId: one(users, {
+//     fields: [votes.voterId],
+//     references: users.id,
+//   }),
+//   question: one(questions, {
+//     fields: [votes.questionId],
+//     references: questions.id,
+//   }),
+// }));
