@@ -14,6 +14,9 @@ import AnswerModel from './answers';
 import QuestionModel from './questions';
 import TagModel from './tags';
 import CommentModel from './comments';
+import db from './db/db';
+import { count, countDistinct, eq } from 'drizzle-orm';
+import { questionTags, tags } from './db/schema';
 
 /**
  * Parses tags from a search string.
@@ -607,27 +610,16 @@ export const addComment = async (
  */
 export const getTagCountMap = async (): Promise<Map<string, number> | null | { error: string }> => {
   try {
-    const tlist = await TagModel.find();
-    const qlist = await QuestionModel.find().populate({
-      path: 'tags',
-      model: TagModel,
-    });
+    const tagsList = await db
+      .select({
+        name: tags.name,
+        questionCount: countDistinct(questionTags.questionId),
+      })
+      .from(tags)
+      .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
+      .groupBy(tags.id);
 
-    if (!tlist || tlist.length === 0) {
-      return null;
-    }
-
-    const tmap = new Map(tlist.map(t => [t.name, 0]));
-
-    if (qlist != null && qlist !== undefined && qlist.length > 0) {
-      qlist.forEach(q => {
-        q.tags.forEach(t => {
-          tmap.set(t.name, (tmap.get(t.name) || 0) + 1);
-        });
-      });
-    }
-
-    return tmap;
+    return new Map(tagsList.map(t => [t.name, t.questionCount]));
   } catch (error) {
     return { error: 'Error when construction tag map' };
   }

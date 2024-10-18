@@ -81,7 +81,7 @@ export const answerVersions = sqliteTable('answer_versions', {
 
 export const tags = sqliteTable('tags', {
   id: t.int().primaryKey({ autoIncrement: true }),
-  name: t.text(),
+  name: t.text().notNull(),
   description: t.text(),
   ...dateFields,
 });
