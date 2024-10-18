@@ -619,8 +619,6 @@ export const getTagCountMap = async (): Promise<Map<string, number> | null | { e
       .leftJoin(questionTags, eq(tags.id, questionTags.tagId))
       .groupBy(tags.id);
 
-    console.log(tagsList);
-
     return new Map(tagsList.map(t => [t.name, t.questionCount]));
   } catch (error) {
     return { error: 'Error when construction tag map' };
