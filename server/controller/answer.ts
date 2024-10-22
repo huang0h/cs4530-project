@@ -1,7 +1,9 @@
 import express, { Response } from 'express';
 import { Server } from 'socket.io';
-import { Answer, AnswerRequest } from '../types';
 import { addAnswerToQuestion, populateDocument, saveAnswer } from '../models/application';
+import { CreateAnswer, WithRelations, Answer } from '../models/db/types';
+import { AddAnswerRequest } from '../models/dtos';
+import db from '../models/db/db';
 
 const answerController = (socket: Server) => {
   const router = express.Router();
@@ -13,8 +15,8 @@ const answerController = (socket: Server) => {
    *
    * @returns `true` if the request is valid, otherwise `false`.
    */
-  function isRequestValid(req: AnswerRequest): boolean {
-    return !!req.body.qid && !!req.body.ans;
+  function isRequestValid(req: AddAnswerRequest): boolean {
+    return !!req.body.questionId && !!req.body.text && !!req.body.answererId;
   }
 
   /**
@@ -24,8 +26,8 @@ const answerController = (socket: Server) => {
    *
    * @returns `true` if the answer is valid, otherwise `false`.
    */
-  function isAnswerValid(ans: Answer): boolean {
-    return !!ans.text && !!ans.ansBy && !!ans.ansDateTime;
+  function isAnswerValid(ans: CreateAnswer): boolean {
+    return !!ans.text && !!ans.answererId && !!ans.text;
   }
 
   /**
@@ -38,37 +40,39 @@ const answerController = (socket: Server) => {
    *
    * @returns A Promise that resolves to void.
    */
-  const addAnswer = async (req: AnswerRequest, res: Response): Promise<void> => {
+  const addAnswer = async (req: AddAnswerRequest, res: Response): Promise<void> => {
     if (!isRequestValid(req)) {
       res.status(400).send('Invalid request');
       return;
     }
-    if (!isAnswerValid(req.body.ans)) {
+    if (!isAnswerValid(req.body)) {
       res.status(400).send('Invalid answer');
       return;
     }
 
-    const { qid } = req.body;
-    const ansInfo: Answer = req.body.ans;
+    const answer = req.body;
 
     try {
-      const ansFromDb = await saveAnswer(ansInfo);
+      const ansFromDb = await saveAnswer(answer);
 
       if ('error' in ansFromDb) {
         throw new Error(ansFromDb.error as string);
       }
 
-      const status = await addAnswerToQuestion(qid, ansFromDb);
+      // const status = await addAnswerToQuestion(answer.questionId, ansFromDb);
 
-      if (status && 'error' in status) {
-        throw new Error(status.error as string);
-      }
+      // if (status && 'error' in status) {
+      //   throw new Error(status.error as string);
+      // }
 
-      // Populates the fields of the answer that was added and emits the new object
-      socket.emit('answerUpdate', {
-        qid,
-        answer: await populateDocument(ansFromDb._id?.toString(), 'answer'),
-      });
+      const fullAnswer: undefined | WithRelations<Answer, 'question'> =
+        await db.query.answers.findFirst({ with: { question: true } });
+
+      if (fullAnswer)
+        socket.emit('answerUpdate', {
+          qid: fullAnswer.questionId,
+          answer: fullAnswer,
+        });
       res.json(ansFromDb);
     } catch (err) {
       res.status(500).send(`Error when adding answer: ${(err as Error).message}`);

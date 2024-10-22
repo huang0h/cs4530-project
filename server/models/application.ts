@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { Model, QueryOptions } from 'mongoose';
 import {
   // Answer,
-  AnswerResponse,
+  // AnswerResponse,
   Comment,
   CommentResponse,
   OrderType,
@@ -10,12 +10,14 @@ import {
   QuestionResponse,
   // Tag,
 } from '../types';
-import { Question, Answer, Tag, WithRelations } from './db/types';
+import { Question, Answer, Tag, WithRelations, CreateAnswer } from './db/types';
 import AnswerModel from './answers';
 import QuestionModel from './questions';
 import TagModel from './tags';
 import CommentModel from './comments';
 import db from './db/db';
+import { answers, questions } from './db/schema';
+import { AnswerResponse } from './dtos';
 
 /**
  * Parses tags from a search string.
@@ -254,7 +256,8 @@ export const getQuestionsByOrder = async (
 export const filterQuestionsByAskedBy = (
   qlist: WithRelations<Question, 'askedByUser' | 'answers' | 'tags'>[],
   askedBy: string,
-): WithRelations<Question, 'askedByUser' | 'answers' | 'tags'>[] => qlist.filter(q => q.askedByUser.username === askedBy);
+): WithRelations<Question, 'askedByUser' | 'answers' | 'tags'>[] =>
+  qlist.filter(q => q.askedByUser.username === askedBy);
 
 /**
  * Filters questions based on a search string containing tags and/or keywords.
@@ -397,13 +400,26 @@ export const saveQuestion = async (question: Question): Promise<QuestionResponse
  *
  * @returns {Promise<AnswerResponse>} - The saved answer, or an error message if the save failed
  */
-export const saveAnswer = async (answer: Answer): Promise<AnswerResponse> => {
+export const saveAnswer = async (createAnswer: CreateAnswer): Promise<AnswerResponse> => {
   try {
-    const result = await AnswerModel.create(answer);
-    return result;
+    const [answer] = await db
+      .insert(answers)
+      .values({
+        text: createAnswer.text,
+        questionId: createAnswer.questionId,
+        answererId: createAnswer.answererId,
+      })
+      .returning();
+    return answer;
   } catch (error) {
     return { error: 'Error when saving an answer' };
   }
+  // try {
+  //   const result = await AnswerModel.create(answer);
+  //   return result;
+  // } catch (error) {
+  //   return { error: 'Error when saving an answer' };
+  // }
 };
 
 /**
@@ -568,16 +584,15 @@ export const addVoteToQuestion = async (
  *
  * @returns {Promise<QuestionResponse | null>} - The updated question, or `null` if an error.
  */
-export const addAnswerToQuestion = async (qid: string, ans: Answer): Promise<QuestionResponse> => {
+export const addAnswerToQuestion = async (qid: number, ans: Answer): Promise<QuestionResponse> => {
   try {
-    if (!ans || !ans.text || !ans.ansBy || !ans.ansDateTime) {
-      throw new Error('Invalid answer');
-    }
-    const result = await QuestionModel.findOneAndUpdate(
-      { _id: qid },
-      { $push: { answers: { $each: [ans._id], $position: 0 } } },
-      { new: true },
-    );
+    // const result = await QuestionModel.findOneAndUpdate(
+    //   { _id: qid },
+    //   { $push: { answers: { $each: [ans._id], $position: 0 } } },
+    //   { new: true },
+    // );
+    await db.update(answers).set({ questionId: qid }).where();
+
     if (result === null) {
       throw new Error('Error when adding answer to question');
     }

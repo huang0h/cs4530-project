@@ -41,6 +41,13 @@ export interface Answer extends AnswerColumns {
   question?: QuestionColumns;
 }
 
+export interface AnswerComment extends AnswerCommentColumns {
+  answer?: AnswerColumns;
+  commenter?: UserColumns;
+}
+
+export type CreateAnswer = Pick<Answer, 'answererId' | 'text' | 'questionId'>;
+
 export interface Tag extends TagColumns {
   question?: QuestionColumns;
 }
