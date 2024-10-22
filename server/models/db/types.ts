@@ -35,3 +35,14 @@ export interface QuestionComment extends QuestionCommentColumns {
   question?: QuestionColumns;
   commenter?: UserColumns;
 }
+
+export interface Answer extends AnswerColumns {
+  answerer?: UserColumns;
+  question?: QuestionColumns;
+}
+
+export interface Tag extends TagColumns {
+  question?: QuestionColumns;
+}
+
+export type WithRelations<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;

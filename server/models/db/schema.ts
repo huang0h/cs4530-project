@@ -13,11 +13,11 @@ const dateFields = {
     .integer('updated_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`)
-    .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
+    .$onUpdate(() => sql`(unixepoch())`),
   createdAt: t
     .integer('created_at', { mode: 'timestamp' })
     .notNull()
-    .default(sql`(unixepoch())`)
+    .default(sql`(unixepoch())`),
 };
 
 export const users = sqliteTable('users', {
@@ -115,8 +115,14 @@ export const tags = sqliteTable('tags', {
 export const questionTags = sqliteTable(
   'questionTags',
   {
-    questionId: t.integer().references(() => questions.id),
-    tagId: t.integer().references(() => tags.id),
+    questionId: t
+      .integer()
+      .notNull()
+      .references(() => questions.id),
+    tagId: t
+      .integer()
+      .notNull()
+      .references(() => tags.id),
   },
   table => ({
     pk: t.primaryKey({ columns: [table.questionId, table.tagId] }),
@@ -171,11 +177,11 @@ export const questionsRelations = relations(questions, ({ one, many }) => ({
 }));
 
 export const answerRelations = relations(answers, ({ one, many }) => ({
-  answererId: one(users, {
+  answerer: one(users, {
     fields: [answers.answererId],
     references: [users.id],
   }),
-  questionId: one(questions, {
+  question: one(questions, {
     fields: [answers.questionId],
     references: [questions.id],
   }),
