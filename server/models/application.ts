@@ -1,19 +1,23 @@
 import { ObjectId } from 'mongodb';
 import { Model, QueryOptions } from 'mongoose';
 import {
-  Answer,
-  AnswerResponse,
+  // Answer,
+  // AnswerResponse,
   Comment,
   CommentResponse,
   OrderType,
-  Question,
+  // Question,
   QuestionResponse,
-  Tag,
+  // Tag,
 } from '../types';
+import { Question, Answer, Tag, WithRelations, CreateAnswer } from './db/types';
 import AnswerModel from './answers';
 import QuestionModel from './questions';
 import TagModel from './tags';
 import CommentModel from './comments';
+import db from './db/db';
+import { answers, questions } from './db/schema';
+import { AnswerResponse } from './dtos';
 
 /**
  * Parses tags from a search string.
@@ -43,7 +47,10 @@ export const parseKeyword = (search: string): string[] =>
  *
  * @returns {boolean} - `true` if any tag is present in the question, `false` otherwise
  */
-export const checkTagInQuestion = (q: Question, taglist: string[]): boolean => {
+export const checkTagInQuestion = (
+  q: WithRelations<Question, 'tags'>,
+  taglist: string[],
+): boolean => {
   for (const tagname of taglist) {
     for (const tag of q.tags) {
       if (tagname === tag.name) {
@@ -80,13 +87,15 @@ export const checkKeywordInQuestion = (q: Question, keywordlist: string[]): bool
  *
  * @returns {Question[]} - The sorted list of questions
  */
-export const sortQuestionsByNewest = (qlist: Question[]): Question[] =>
+export const sortQuestionsByNewest = (
+  qlist: WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[],
+): WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[] =>
   qlist.sort((a, b) => {
-    if (a.askDateTime > b.askDateTime) {
+    if (a.createdAt > b.createdAt) {
       return -1;
     }
 
-    if (a.askDateTime < b.askDateTime) {
+    if (a.createdAt < b.createdAt) {
       return 1;
     }
 
@@ -100,7 +109,9 @@ export const sortQuestionsByNewest = (qlist: Question[]): Question[] =>
  *
  * @returns {Question[]} - The filtered and sorted list of unanswered questions
  */
-export const sortQuestionsByUnanswered = (qlist: Question[]): Question[] =>
+export const sortQuestionsByUnanswered = (
+  qlist: WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[],
+): WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[] =>
   sortQuestionsByNewest(qlist).filter(q => q.answers.length === 0);
 
 /**
@@ -110,13 +121,14 @@ export const sortQuestionsByUnanswered = (qlist: Question[]): Question[] =>
  *
  * @param {Map<string, Date>} mp - A map of the most recent answer time for each question
  */
-export const getMostRecentAnswerTime = (q: Question, mp: Map<string, Date>): void => {
+export const getMostRecentAnswerTime = (
+  q: WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>,
+  mp: Map<number, Date>,
+): void => {
   q.answers.forEach((a: Answer) => {
-    if (q._id !== undefined) {
-      const currentMostRecent = mp.get(q?._id.toString());
-      if (!currentMostRecent || currentMostRecent < a.ansDateTime) {
-        mp.set(q._id.toString(), a.ansDateTime);
-      }
+    const currentMostRecent = mp.get(q.id);
+    if (!currentMostRecent || currentMostRecent < a.createdAt) {
+      mp.set(q.id, a.createdAt);
     }
   });
 };
@@ -128,15 +140,17 @@ export const getMostRecentAnswerTime = (q: Question, mp: Map<string, Date>): voi
  *
  * @returns {Question[]} - The filtered and sorted list of active questions
  */
-export const sortQuestionsByActive = (qlist: Question[]): Question[] => {
-  const mp = new Map();
+export const sortQuestionsByActive = (
+  qlist: WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[],
+): WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[] => {
+  const mp = new Map<number, Date>();
   qlist.forEach(q => {
     getMostRecentAnswerTime(q, mp);
   });
 
   return sortQuestionsByNewest(qlist).sort((a, b) => {
-    const adate = mp.get(a._id?.toString());
-    const bdate = mp.get(b._id?.toString());
+    const adate = mp.get(a.id);
+    const bdate = mp.get(b.id);
     if (!adate) {
       return 1;
     }
@@ -162,8 +176,10 @@ export const sortQuestionsByActive = (qlist: Question[]): Question[] => {
  *
  * @returns A new array of Question objects sorted by the number of views.
  */
-export const sortQuestionsByMostViews = (qlist: Question[]): Question[] =>
-  sortQuestionsByNewest(qlist).sort((a, b) => b.views - a.views);
+export const sortQuestionsByMostViews = (
+  qlist: WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[],
+): WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[] =>
+  sortQuestionsByNewest(qlist).sort((a, b) => b.viewCount - a.viewCount);
 
 /**
  * Adds a tag to the database if it does not already exist.
@@ -198,17 +214,25 @@ export const addTag = async (tag: Tag): Promise<Tag | null> => {
  *
  * @returns {Promise<Question[]>} - Promise that resolves to a list of ordered questions
  */
-export const getQuestionsByOrder = async (order: OrderType): Promise<Question[]> => {
+export const getQuestionsByOrder = async (
+  order: OrderType,
+): Promise<WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[]> => {
   try {
-    let qlist = [];
+    const qlist: WithRelations<Question, 'answers' | 'tags' | 'askedByUser'>[] =
+      await db.query.questions
+        .findMany({ with: { answers: true, tags: { with: { tag: true } }, askedByUser: true } })
+        .execute()
+        .then(fetchedQuestions =>
+          fetchedQuestions.map(question => ({
+            ...question,
+            tags: question.tags.map(tag => tag.tag),
+          })),
+        );
+
     if (order === 'active') {
-      qlist = await QuestionModel.find().populate([
-        { path: 'tags', model: TagModel },
-        { path: 'answers', model: AnswerModel },
-      ]);
       return sortQuestionsByActive(qlist);
     }
-    qlist = await QuestionModel.find().populate([{ path: 'tags', model: TagModel }]);
+
     if (order === 'unanswered') {
       return sortQuestionsByUnanswered(qlist);
     }
@@ -229,8 +253,11 @@ export const getQuestionsByOrder = async (order: OrderType): Promise<Question[]>
  *
  * @returns Filtered Question objects.
  */
-export const filterQuestionsByAskedBy = (qlist: Question[], askedBy: string): Question[] =>
-  qlist.filter(q => q.askedBy === askedBy);
+export const filterQuestionsByAskedBy = (
+  qlist: WithRelations<Question, 'askedByUser' | 'answers' | 'tags'>[],
+  askedBy: string,
+): WithRelations<Question, 'askedByUser' | 'answers' | 'tags'>[] =>
+  qlist.filter(q => q.askedByUser.username === askedBy);
 
 /**
  * Filters questions based on a search string containing tags and/or keywords.
@@ -240,14 +267,17 @@ export const filterQuestionsByAskedBy = (qlist: Question[], askedBy: string): Qu
  *
  * @returns {Question[]} - The filtered list of questions matching the search criteria
  */
-export const filterQuestionsBySearch = (qlist: Question[], search: string): Question[] => {
+export const filterQuestionsBySearch = (
+  qlist: WithRelations<Question, 'tags'>[],
+  search: string,
+): Question[] => {
   const searchTags = parseTags(search);
   const searchKeyword = parseKeyword(search);
 
   if (!qlist || qlist.length === 0) {
     return [];
   }
-  return qlist.filter((q: Question) => {
+  return qlist.filter(q => {
     if (searchKeyword.length === 0 && searchTags.length === 0) {
       return true;
     }
@@ -370,13 +400,26 @@ export const saveQuestion = async (question: Question): Promise<QuestionResponse
  *
  * @returns {Promise<AnswerResponse>} - The saved answer, or an error message if the save failed
  */
-export const saveAnswer = async (answer: Answer): Promise<AnswerResponse> => {
+export const saveAnswer = async (createAnswer: CreateAnswer): Promise<AnswerResponse> => {
   try {
-    const result = await AnswerModel.create(answer);
-    return result;
+    const [answer] = await db
+      .insert(answers)
+      .values({
+        text: createAnswer.text,
+        questionId: createAnswer.questionId,
+        answererId: createAnswer.answererId,
+      })
+      .returning();
+    return answer;
   } catch (error) {
     return { error: 'Error when saving an answer' };
   }
+  // try {
+  //   const result = await AnswerModel.create(answer);
+  //   return result;
+  // } catch (error) {
+  //   return { error: 'Error when saving an answer' };
+  // }
 };
 
 /**
@@ -541,16 +584,15 @@ export const addVoteToQuestion = async (
  *
  * @returns {Promise<QuestionResponse | null>} - The updated question, or `null` if an error.
  */
-export const addAnswerToQuestion = async (qid: string, ans: Answer): Promise<QuestionResponse> => {
+export const addAnswerToQuestion = async (qid: number, ans: Answer): Promise<QuestionResponse> => {
   try {
-    if (!ans || !ans.text || !ans.ansBy || !ans.ansDateTime) {
-      throw new Error('Invalid answer');
-    }
-    const result = await QuestionModel.findOneAndUpdate(
-      { _id: qid },
-      { $push: { answers: { $each: [ans._id], $position: 0 } } },
-      { new: true },
-    );
+    // const result = await QuestionModel.findOneAndUpdate(
+    //   { _id: qid },
+    //   { $push: { answers: { $each: [ans._id], $position: 0 } } },
+    //   { new: true },
+    // );
+    await db.update(answers).set({ questionId: qid }).where();
+
     if (result === null) {
       throw new Error('Error when adding answer to question');
     }

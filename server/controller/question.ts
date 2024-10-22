@@ -2,12 +2,14 @@ import express, { Response } from 'express';
 import { ObjectId } from 'mongodb';
 import { Server } from 'socket.io';
 import {
-  Question,
+  // Question,
   FindQuestionRequest,
   FindQuestionByIdRequest,
-  AddQuestionRequest,
+  // AddQuestionRequest,
   VoteRequest,
 } from '../types';
+import { AddQuestionRequest } from '../models/dtos';
+import { Question } from '../models/db/types';
 import {
   addVoteToQuestion,
   fetchAndIncrementQuestionViewsById,
@@ -32,17 +34,15 @@ const questionController = (socket: Server) => {
    * @returns A Promise that resolves to void.
    */
   const getQuestionsByFilter = async (req: FindQuestionRequest, res: Response): Promise<void> => {
-    const { order } = req.query;
-    const { search } = req.query;
-    const { askedBy } = req.query;
+    const { order, search, askedBy } = req.query;
     try {
-      let qlist: Question[] = await getQuestionsByOrder(order);
+      let qlist = await getQuestionsByOrder(order);
       // Filter by askedBy if provided
       if (askedBy) {
         qlist = filterQuestionsByAskedBy(qlist, askedBy);
       }
       // Filter by search keyword and tags
-      const resqlist: Question[] = await filterQuestionsBySearch(qlist, search);
+      const resqlist = await filterQuestionsBySearch(qlist, search);
       res.json(resqlist);
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -92,17 +92,14 @@ const questionController = (socket: Server) => {
    *
    * @returns `true` if the question is valid, otherwise `false`.
    */
-  const isQuestionBodyValid = (question: Question): boolean =>
+  const isQuestionBodyValid = (question: AddQuestionRequest['body']): boolean =>
     question.title !== undefined &&
     question.title !== '' &&
     question.text !== undefined &&
     question.text !== '' &&
     question.tags !== undefined &&
     question.tags.length > 0 &&
-    question.askedBy !== undefined &&
-    question.askedBy !== '' &&
-    question.askDateTime !== undefined &&
-    question.askDateTime !== null;
+    question.askerId !== undefined;
 
   /**
    * Adds a new question to the database. The question is first validated and then saved.
@@ -118,7 +115,10 @@ const questionController = (socket: Server) => {
       res.status(400).send('Invalid question body');
       return;
     }
-    const question: Question = req.body;
+
+    const { title, text, tags, askerId } = req.body;
+
+    // const question: Question = req.body;
     try {
       const questionswithtags: Question = {
         ...question,
