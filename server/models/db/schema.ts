@@ -1,4 +1,3 @@
-import { unique } from 'drizzle-orm/mysql-core';
 import { sqliteTable } from 'drizzle-orm/sqlite-core';
 import * as t from 'drizzle-orm/sqlite-core';
 import { sql, relations } from 'drizzle-orm';
@@ -11,14 +10,14 @@ import { sql, relations } from 'drizzle-orm';
 
 const dateFields = {
   updatedAt: t
-    .text('updated_at')
+    .integer('updated_at', { mode: 'timestamp' })
     .notNull()
-    .default(sql`(CURRENT_TIMESTAMP)`)
-    .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
+    .default(sql`(unixepoch())`)
+    .$onUpdate(() => sql`(unixepoch())`),
   createdAt: t
-    .text('created_at')
+    .integer('created_at', { mode: 'timestamp' })
     .notNull()
-    .default(sql`(CURRENT_TIMESTAMP)`),
+    .default(sql`(unixepoch())`),
 };
 
 export const users = sqliteTable('users', {
@@ -32,65 +31,98 @@ export const questions = sqliteTable('questions', {
   id: t.int().primaryKey({ autoIncrement: true }),
   title: t.text().notNull(),
   text: t.text().notNull(),
-  askerId: t.int().references(() => users.id),
-  viewCount: t.int().default(0),
+  askerId: t
+    .int()
+    .notNull()
+    .references(() => users.id),
+  viewCount: t.int().notNull().default(0),
   ...dateFields,
 });
 
 export const answers = sqliteTable('answers', {
   id: t.int().primaryKey({ autoIncrement: true }),
-  questionId: t.int().references(() => questions.id),
+  questionId: t
+    .int()
+    .notNull()
+    .references(() => questions.id),
   text: t.text().notNull(),
-  answererId: t.int().references(() => users.id),
+  answererId: t
+    .int()
+    .notNull()
+    .references(() => users.id),
   ...dateFields,
 });
 
 const commentFields = {
   id: t.int('id').primaryKey({ autoIncrement: true }),
   text: t.text().notNull(),
-  commenterId: t.int().references(() => users.id),
+  commenterId: t
+    .int()
+    .notNull()
+    .references(() => users.id),
   ...dateFields,
 };
 
 export const questionComments = sqliteTable('question_comments', {
   ...commentFields,
-  questionId: t.int().references(() => questions.id),
+  questionId: t
+    .int()
+    .notNull()
+    .references(() => questions.id),
 });
 
 export const answerComments = sqliteTable('answer_comments', {
   ...commentFields,
-  questionId: t.int().references(() => questions.id),
+  questionId: t
+    .int()
+    .notNull()
+    .references(() => questions.id),
 });
 
 const versionFields = {
   id: t.int().primaryKey({ autoIncrement: true }),
   text: t.text().notNull(),
-  editorId: t.int().references(() => users.id),
+  editorId: t
+    .int()
+    .notNull()
+    .references(() => users.id),
   ...dateFields,
 };
 
 export const questionVersions = sqliteTable('question_versions', {
   ...versionFields,
-  questionId: t.int().references(() => questions.id),
+  questionId: t
+    .int()
+    .notNull()
+    .references(() => questions.id),
 });
 
 export const answerVersions = sqliteTable('answer_versions', {
   ...versionFields,
-  answerId: t.int().references(() => answers.id),
+  answerId: t
+    .int()
+    .notNull()
+    .references(() => answers.id),
 });
 
 export const tags = sqliteTable('tags', {
   id: t.int().primaryKey({ autoIncrement: true }),
-  name: t.text(),
-  description: t.text(),
+  name: t.text().notNull(),
+  description: t.text().notNull(),
   ...dateFields,
 });
 
 export const questionTags = sqliteTable(
   'questionTags',
   {
-    questionId: t.integer().references(() => questions.id),
-    tagId: t.integer().references(() => tags.id),
+    questionId: t
+      .integer()
+      .notNull()
+      .references(() => questions.id),
+    tagId: t
+      .integer()
+      .notNull()
+      .references(() => tags.id),
   },
   table => ({
     pk: t.primaryKey({ columns: [table.questionId, table.tagId] }),
@@ -100,8 +132,14 @@ export const questionTags = sqliteTable(
 export const votes = sqliteTable(
   'votes',
   {
-    questionId: t.int().references(() => questions.id),
-    voterId: t.int().references(() => users.id),
+    questionId: t
+      .int()
+      .notNull()
+      .references(() => questions.id),
+    voterId: t
+      .int()
+      .notNull()
+      .references(() => users.id),
     value: t.int().notNull(),
     ...dateFields,
   },
@@ -139,11 +177,11 @@ export const questionsRelations = relations(questions, ({ one, many }) => ({
 }));
 
 export const answerRelations = relations(answers, ({ one, many }) => ({
-  answererId: one(users, {
+  answerer: one(users, {
     fields: [answers.answererId],
     references: [users.id],
   }),
-  questionId: one(questions, {
+  question: one(questions, {
     fields: [answers.questionId],
     references: [questions.id],
   }),
@@ -156,7 +194,7 @@ export const questionsCommentsRelations = relations(questionComments, ({ one }) 
     fields: [questionComments.questionId],
     references: [questions.id],
   }),
-  commenterId: one(users, {
+  commenter: one(users, {
     fields: [questionComments.commenterId],
     references: [users.id],
   }),
