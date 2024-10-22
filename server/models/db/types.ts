@@ -27,7 +27,7 @@ export interface Question extends QuestionColumns {
   votes?: VoteColumns[];
   answers?: AnswerColumns[];
   questionComments?: QuestionCommentColumns[];
-  tags?: TagColumns;
+  tags?: TagColumns[];
   versions?: QuestionVersionColumns[];
 }
 

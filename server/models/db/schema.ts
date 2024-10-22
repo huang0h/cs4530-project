@@ -10,14 +10,14 @@ import { sql, relations } from 'drizzle-orm';
 
 const dateFields = {
   updatedAt: t
-    .text('updated_at')
+    .integer('updated_at', { mode: 'timestamp' })
     .notNull()
-    .default(sql`(CURRENT_TIMESTAMP)`)
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => sql`(CURRENT_TIMESTAMP)`),
   createdAt: t
-    .text('created_at')
+    .integer('created_at', { mode: 'timestamp' })
     .notNull()
-    .default(sql`(CURRENT_TIMESTAMP)`),
+    .default(sql`(unixepoch())`)
 };
 
 export const users = sqliteTable('users', {
