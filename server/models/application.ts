@@ -14,6 +14,7 @@ import AnswerModel from './answers';
 import QuestionModel from './questions';
 import TagModel from './tags';
 import CommentModel from './comments';
+import db from './db/db';
 
 /**
  * Parses tags from a search string.
@@ -200,15 +201,14 @@ export const addTag = async (tag: Tag): Promise<Tag | null> => {
  */
 export const getQuestionsByOrder = async (order: OrderType): Promise<Question[]> => {
   try {
-    let qlist = [];
+    const qlist = await db.query.questions
+      .findMany({ with: { answers: true, tags: true } })
+      .execute();
+
     if (order === 'active') {
-      qlist = await QuestionModel.find().populate([
-        { path: 'tags', model: TagModel },
-        { path: 'answers', model: AnswerModel },
-      ]);
       return sortQuestionsByActive(qlist);
     }
-    qlist = await QuestionModel.find().populate([{ path: 'tags', model: TagModel }]);
+
     if (order === 'unanswered') {
       return sortQuestionsByUnanswered(qlist);
     }
