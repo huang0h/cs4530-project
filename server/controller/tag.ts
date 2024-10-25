@@ -2,6 +2,9 @@ import express, { Request, Response, Router } from 'express';
 import { Server } from 'socket.io';
 import { getTagCountMap } from '../models/application';
 import TagModel from '../models/tags';
+import db from '../models/db/db';
+import { eq } from 'drizzle-orm';
+import { tags } from '../models/db/schema';
 
 const tagController = (socket: Server) => {
   const router: Router = express.Router();
@@ -45,7 +48,7 @@ const tagController = (socket: Server) => {
   const getTagByName = async (req: Request, res: Response): Promise<void> => {
     try {
       const { name } = req.params; // Get the tag name from the request parameters
-      const tag = await TagModel.findOne({ name }); // Use the model's method to find the tag
+      const tag = await db.query.tags.findFirst({ where: eq(tags.name, name) });
 
       if (!tag) {
         res.status(404).send(`Tag with name "${name}" not found`);
